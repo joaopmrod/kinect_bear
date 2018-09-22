@@ -207,6 +207,7 @@ pernaD2 = pygame.image.load('pernaD2.png')
 maoD = pygame.image.load('maoD.png')
 
 
+todos = False
 
 def draw_skeletons(skeletons,surface):
 
@@ -235,7 +236,7 @@ def draw_skeletons(skeletons,surface):
 
     for index, data in enumerate(sks):
 
-        if index == 0 or False:
+        if index == 0 or todos:
 
 
             '''line = True
@@ -437,5 +438,6 @@ if __name__ == '__main__':
                 reload_json()
             elif e.key == K_a:
                win2_sk= not win2_sk
-
+            elif e.key == K_t:
+               todos= not todos
 

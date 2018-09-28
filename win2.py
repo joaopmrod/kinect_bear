@@ -1,5 +1,5 @@
-import time
 
+import pyglet
 import thread
 import itertools
 import ctypes
@@ -11,84 +11,40 @@ from pykinect.nui import JointId
 import pygame
 from pygame.color import THECOLORS
 from pygame.locals import *
+import numpy as np
+import copy
+import json
 
-VIDEO_WINSIZE = 640*2, 480*2
+import cv2
 
-def win2(framesQ):
-    m = 0
+import time
+import moviepy
+from moviepy.editor import *
+import os
+import cv2
+import numpy as np
+import time
+import threading
 
-    pygame.init()
-
-    screen_lock = thread.allocate()
-
-    screen = pygame.display.set_mode(VIDEO_WINSIZE, RESIZABLE, 32)
-    pygame.display.set_caption('Python Kinect Demo2')
+import cv2
+from game import preview2
+import os
 
 
-    screen.fill(THECOLORS["black"])
+def win3():
 
-
-
-    while True:
-
-            e = pygame.event.wait()
-            dispInfo = pygame.display.Info()
-
-        #try:
-            frameTime = framesQ.get(block=True,timeout=.2)
-            print("new frame",m)
-            m=m+1
+    clip = VideoFileClip('danca.mp4')
 
 
 
-            screen.blit(frameTime, (0, 0))
-
-            #pygame.display.update()
-
-        #except Exception as e:
-        #    print("..",e)
-        #    pass
-        #    time.sleep(.2)
+    os.environ["SDL_VIDEO_CENTERED"] = "1"
 
 
-def win3(framesQ):
 
-    #return
+    preview2(clip, cv=True, cv_names=['Danca','Danca2'])
 
-    import sys, pygame
 
-    pygame.init()
 
-    black = 0, 0, 0
-
-    screen = pygame.display.set_mode(VIDEO_WINSIZE,0,32)
-    pygame.display.set_caption('Python Kinect Demo 2')
-    #ball = pygame.image.load("cabeca.png")
-    #ballrect = ball.get_rect()
-
-    while 1:
-        try:
-            frameTime = framesQ.get(block=True,timeout=0.01)
-        except:
-            break
-
-    #m=0
-    while 1:
-        event = pygame.event.poll()
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            break
-
-        frameTime = framesQ.get(block=True)
-        #print(frameTime, m)
-        #m = m + 1
-
-        screen.fill(black)
-
-        surf = pygame.surfarray.make_surface(frameTime)
-
-        surf = pygame.transform.scale(surf, (640 * 2, 480 * 2))
-
-        screen.blit(surf, (0,0))
-        pygame.display.flip()
-#        pygame.time.delay(5)
+    # Closes all the frames
+    cv2.destroyWindow('Danca')
+    cv2.destroyWindow('Danca')

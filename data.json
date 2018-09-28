@@ -1,0 +1,112 @@
+{"parts":[{
+  "ArmLeft": {
+    "imagem": "multi",
+    "a": "JointId.ShoulderLeft",
+    "b": "JointId.ElbowLeft",
+    "center_dist": 0.5,
+    "extraH": 1.8,
+    "racio": 0.6,
+    "w_forced": null,
+    "h_forced": null
+  }},{
+  "ArmRight": {
+    "imagem": "multi",
+    "a": "JointId.ShoulderRight",
+    "b": "JointId.ElbowRight",
+    "center_dist": 0.5,
+    "extraH": 1.8,
+    "racio": 0.6,
+    "w_forced": null,
+    "h_forced": null
+  }},{
+    "LegLeft2": {
+    "imagem": "pernaE2",
+    "a": "JointId.KneeLeft",
+    "b": "JointId.FootLeft",
+    "center_dist": 0.6,
+    "extraH": 1.5,
+    "racio": 0.5,
+    "w_forced": null,
+    "h_forced": null
+  }},{
+  "LegLeft": {
+    "imagem": "multi",
+    "a": "JointId.HipLeft",
+    "b": "JointId.KneeLeft",
+    "center_dist": 0.5,
+    "extraH": 1.2,
+    "racio": 0.55,
+    "w_forced": null,
+    "h_forced": null
+  }},{
+  "LegRight2": {
+    "imagem": "pernaD2",
+    "a": "JointId.KneeRight",
+    "b": "JointId.FootRight",
+    "center_dist": 0.6,
+    "extraH": 1.5,
+    "racio": 0.5,
+    "w_forced": null,
+    "h_forced": null
+  }},{
+  "LegRight": {
+    "imagem": "multi",
+    "a": "JointId.HipRight",
+    "b": "JointId.KneeRight",
+    "center_dist": 0.5,
+    "extraH": 1.2,
+    "racio": 0.55,
+    "w_forced": null,
+    "h_forced": null
+  }},{
+
+  "Body": {
+    "imagem": "tronco",
+    "a": "JointId.ShoulderCenter",
+    "b": "JointId.HipCenter",
+    "center_dist": 1,
+    "extraH": 2.5,
+    "racio": 0.56,
+    "w_forced": null,
+    "h_forced": null
+  }},{
+  "LeftArm2": {
+    "imagem": "bracoD2",
+    "a": "JointId.ElbowLeft",
+    "b": "JointId.HandLeft",
+    "center_dist": 0.7,
+    "extraH": 2.2,
+    "racio": 0.6,
+    "w_forced": null,
+    "h_forced": null
+  }},{
+  "RightArm2": {
+    "imagem": "bracoE2",
+    "a": "JointId.ElbowRight",
+    "b": "JointId.HandRight",
+    "center_dist": 0.7,
+    "extraH": 2.2,
+    "racio": 0.6,
+    "w_forced": null,
+    "h_forced": null
+  }},{
+
+
+
+  "head": {
+    "imagem": "cabeca",
+    "a": "JointId.Head",
+    "b": "JointId.ShoulderCenter",
+    "center_dist": 0,
+    "extraH": 2.7,
+    "racio": 1.4,
+    "w_forced": null,
+    "h_forced": null
+  }}]
+}
+
+
+
+
+
+

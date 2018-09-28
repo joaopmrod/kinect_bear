@@ -1,10 +1,5 @@
-
-screen = None
-
 import thread
-import itertools
 import ctypes
-
 import pykinect
 from pykinect import nui
 from pykinect.nui import JointId
@@ -15,10 +10,13 @@ from pygame.locals import *
 import numpy as np
 import copy
 import json
+import cv2
+from moviepy.editor import *
+import os
+import time
+import threading
 
 
-#import draw
-#from draw import draw_skeletons
 
 KINECTEVENT = pygame.USEREVENT
 DEPTH_WINSIZE = 320, 240
@@ -80,7 +78,64 @@ SPINE = (JointId.HipCenter,
          #JointId.Spine,
          JointId.ShoulderCenter)
 
+def preview2(clip, fps=15, audio=True, audio_fps=22050, audio_buffersize=3000,
+            audio_nbytes=2, fullscreen=False, cv=False, cv_names=None):
 
+
+    # compute and splash the first image
+    # screen = pg.display.set_mode(clip.size, flags)
+
+    audio = audio and (clip.audio is not None)
+
+    if audio:
+        # the sound will be played in parrallel. We are not
+        # parralellizing it on different CPUs because it seems that
+        # pygame and openCV already use several cpus it seems.
+
+        # two synchro-flags to tell whether audio and video are ready
+        videoFlag = threading.Event()
+        audioFlag = threading.Event()
+        # launch the thread
+        audiothread = threading.Thread(target=clip.audio.preview,
+                                       args=(audio_fps,
+                                             audio_buffersize,
+                                             audio_nbytes,
+                                             audioFlag, videoFlag))
+        audiothread.start()
+
+    if audio:  # synchronize with audio
+        videoFlag.set()  # say to the audio: video is ready
+        audioFlag.wait()  # wait for the audio to be ready
+
+    result = []
+
+    t0 = time.time()
+    for t in np.arange(1.0 / fps, clip.duration - .001, 1.0 / fps):
+
+        img = clip.get_frame(t)
+
+        # Press Q on keyboard to  exit
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            if audio:
+                videoFlag.clear()
+            print("Interrupt")
+            return result
+
+        t1 = time.time()
+        time.sleep(max(0, t - (t1 - t0)))
+        if not cv:
+            # imdisplay(img, screen)
+            pass
+        else:
+
+            a = pygame.surfarray.make_surface(img.swapaxes(0, 1))
+            s1 = pygame.surfarray.pixels3d(a)
+
+            ss = cv2.cvtColor(s1, cv2.COLOR_BGR2RGB)
+            ss = np.rot90(ss, 3)
+            ss = np.fliplr(ss)
+            for cv_name in cv_names:
+                cv2.imshow(cv_name, ss)
 
 def get_screen_pixel (s,w,h):
     pos =nui.SkeletonEngine.skeleton_to_depth_image(s,DEPTH_WINSIZE[0], DEPTH_WINSIZE[1])
@@ -90,9 +145,13 @@ def get_screen_pixel (s,w,h):
         if depth_array is not None and video_frame is not None and video_display:
             frame=video_frame
             pos = kinect.camera.get_color_pixel_coordinates_from_depth_pixel(frame.resolution, frame.view_area, x, y, depth_array.item((x, y)))
+
     except Exception as e:
-        #print(e)
+        if type(e) is not IndexError:
+            print('Add ctypes. in _interop.py  NuiImageGetColorPixelCoordinatesFromDepthPixel')
+            print(e)
         pass
+
     return pos
 
 
@@ -132,21 +191,12 @@ def depth_frame_ready(frame):
     frame.image.copy_bits(tmp_s._pixels_address)
     depth_array = pygame.surfarray.pixels2d(tmp_s)
 
-    if video_display:
-        return
-    with screen_lock:
-        address = surface_to_array(screen)
-        frame.image.copy_bits(address)
-        del address
-        if skeletons is not None and draw_skeleton:
-            draw_skeletons(skeletons)
-        pygame.display.update()
+    return
+
+
 
 video_frame = None
-
-
 def video_frame_ready(frame):
-
 
     global video_frame
 
@@ -156,43 +206,74 @@ def video_frame_ready(frame):
     video_frame=frame
     if not video_display:
         return
+
+    #with screen_lock:
+    address = surface_to_array(video)
+    frame.image.copy_bits(address)
+    del address
+
+    address2 = surface_to_array(video_sk)
+    frame.image.copy_bits(address2)
+    del address2
+
+    video_sk_2 = None
+    video_2 = None
     with screen_lock:
-        address = surface_to_array(video)
-        frame.image.copy_bits(address)
-        del address
-
-        address2 = surface_to_array(video_sk)
-        frame.image.copy_bits(address2)
-        del address2
-
-        video_sk_2 = None
-        video_2 = None
-
         if skeletons is not None:
             draw_skeletons(skeletons,video_sk)
 
-        if draw_skeleton and video_sk is not None:
-            video_sk_2 = pygame.transform.smoothscale(video_sk, (640 * 2, 480 * 2))
-            screen.blit(video_sk_2, (0, 0))
-        else:
-            video_2 = pygame.transform.smoothscale(video, (640 * 2, 480 * 2))
-            screen.blit(video_2, (0, 0))
+    '''if draw_skeleton and video_sk is not None:
+        video_sk_2 = pygame.transform.smoothscale(video_sk, (640 * 2, 480 * 2))
+        #screen.blit(video_sk_2, (0, 0))
+
+        s1 = pygame.surfarray.pixels3d(video_sk_2)
+        ss = cv2.cvtColor(s1, cv2.COLOR_BGR2RGB)
+        ss = np.rot90(ss, 3)
+        cv2.imshow('dois', ss)
+
+    else:
+        video_2 = pygame.transform.smoothscale(video, (640 * 2, 480 * 2))
+        #screen.blit(video_2, (0, 0))
+
+        s1 = pygame.surfarray.pixels3d(video_2)
+        ss = cv2.cvtColor(s1, cv2.COLOR_BGR2RGB)
+        ss = np.rot90(ss, 3)
+        cv2.imshow('dois', ss)
 
 
-        pygame.display.update()
+    #pygame.display.update()'''
 
-        if win2_sk and video_sk is not None:
-            #if video_sk_2 is None:
-                #video_sk_2 = pygame.transform.smoothscale(video_sk, (640 * 2, 480 * 2))
-            s = pygame.surfarray.pixels3d(video_sk)
-        else:
-            #if video_2 is None:
-                #video_2 = pygame.transform.smoothscale(video, (640 * 2, 480 * 2))
-            s = pygame.surfarray.pixels3d(video)
-        try:
-            win2_frames.put(s,block=False)
-        except:
-            pass
+    #if video_sk is not None:
+    #    video_sk_2 = video_sk#pygame.transform.smoothscale(video_sk, (640 * 2, 480 * 2))
+
+    #video_2 = video#pygame.transform.smoothscale(video, (640 * 2, 480 * 2))
+
+
+    if draw_skeleton and video_sk:
+        s1 = pygame.surfarray.pixels3d(video_sk)
+    else:
+        s1 = pygame.surfarray.pixels3d(video)
+
+
+    if win2_sk and video_sk:
+        s2 = pygame.surfarray.pixels3d(video_sk)
+    else:
+        s2 = pygame.surfarray.pixels3d(video)
+
+    ss = cv2.cvtColor(s1, cv2.COLOR_BGR2RGB)
+    ss = np.rot90(ss, 3)
+    cv2.imshow('janela', ss)
+
+    ss = cv2.cvtColor(s2, cv2.COLOR_BGR2RGB)
+    ss = np.rot90(ss, 3)
+    ss = np.fliplr(ss)
+    cv2.imshow('espelho', ss)
+
+
+
+
+
+
 
 
 
@@ -210,6 +291,7 @@ maoD = pygame.image.load('maoD.png')
 todos = False
 
 def draw_skeletons(skeletons,surface):
+
 
     esquerda = 99
     esquerda_id= None
@@ -275,7 +357,7 @@ def draw_skeletons(skeletons,surface):
             body_part_json(data,surface)
 
 
-            #draw_skeleton_data(data, index, SPINE, 10)
+
 json_data = None
 def reload_json():
     global json_data
@@ -329,6 +411,41 @@ def body_part(surface,data, imagem, a, b, center_dist=0.5, extraH=1.2,racio=1, w
 
     if line:
         pygame.draw.line(surface, THECOLORS["red"], start, end, 5)
+def black():
+    cv2.namedWindow(' ', cv2.WINDOW_NORMAL)
+
+    cv2.imshow(' ', np.zeros((800, 600)))
+
+    cv2.setWindowProperty(" ", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+    while True:
+
+        # Press Q on keyboard to  exit
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            break
+
+    # Closes all the frames
+    #cv2.destroyAllWindows()
+
+def videos():
+
+    os.environ["SDL_VIDEO_CENTERED"] = "1"
+
+    clip = VideoFileClip('scene 1-.mp4')
+    cv2.namedWindow('Intro', cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty("Intro", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    preview2(clip, cv=True, cv_names=['Intro'])
+
+
+
+
+    # Closes all the frames
+    #cv2.destroyAllWindows()
+    cv2.destroyWindow('Intro')
+
+    #time.sleep(2)
+
+
 
 
 def dist(x,y):
@@ -338,22 +455,27 @@ def dist(x,y):
 
 win2_sk=False
 if __name__ == '__main__':
-    full_screen = True
-    draw_skeleton = True
-    video_display = False
+
+    black()
+
+    draw_skeleton = False
+    video_display = True
 
     screen_lock = thread.allocate()
 
-    screen = pygame.display.set_mode(DEPTH_WINSIZE, 0, 16)
-    pygame.display.set_caption('Python Kinect Demo')
     skeletons = None
-    screen.fill(THECOLORS["black"])
-
-    kinect = nui.Runtime()
-    kinect.skeleton_engine.enabled = True
 
     reload_json()
 
+    cv2.namedWindow('janela', cv2.WINDOW_NORMAL)
+    cv2.namedWindow('espelho', cv2.WINDOW_NORMAL)
+
+    cv2.imshow('janela', np.zeros((800, 600)))
+
+    time.sleep(1)
+
+    kinect = nui.Runtime()
+    kinect.skeleton_engine.enabled = True
 
     def post_frame(frame):
         try:
@@ -362,7 +484,6 @@ if __name__ == '__main__':
             # event queue full
             pass
 
-
     kinect.skeleton_frame_ready += post_frame
 
     kinect.depth_frame_ready += depth_frame_ready
@@ -370,6 +491,23 @@ if __name__ == '__main__':
 
     kinect.video_stream.open(nui.ImageStreamType.Video, 2, nui.ImageResolution.Resolution640x480, nui.ImageType.Color)
     kinect.depth_stream.open(nui.ImageStreamType.Depth, 2, nui.ImageResolution.Resolution320x240, nui.ImageType.Depth)
+
+
+
+
+
+
+    videos()
+
+
+
+
+
+
+
+
+
+
 
     print('Controls: ')
     print('     d - Switch to depth view')
@@ -382,25 +520,110 @@ if __name__ == '__main__':
     # main game loop
     done = False
 
-    from multiprocessing import Process, Queue, Value, Array, Lock
+    #from multiprocessing import Process
+    from threading import Thread
     import win2
 
-    win2_frames = Queue(200)
+    cv2.namedWindow('Danca', cv2.WINDOW_NORMAL)
+    cv2.namedWindow('Danca2', cv2.WINDOW_NORMAL)
 
-    win2_proc = Process(target=win2.win3, args=(win2_frames,))
+    #win2_proc = Process(target=win2.win3)
+    win2_proc = Thread(target=win2.win3)
+    win2_proc.daemon=True
     win2_proc.start()
 
-    f=True
+
+    #cv2.showWindow('espelho', SW_MINIMIZE);
+    #ShowWindow('espelho', SW_RESTORE);
+
+
+
+    start_time=time.time()
+
+    n=0
+
+    a=True
+    b=True
+    d=True
 
     while not done:
 
-        if f:
+        e = pygame.event.poll()
+        #print(e.type,e.type == KINECTEVENT)
+        n+=1
+        if e.type == KINECTEVENT:
             with screen_lock:
-                screen = pygame.display.set_mode(VIDEO_WINSIZE, RESIZABLE, 32)
-                video_display = True
-                f = False
+                skeletons = e.skeletons
+            n=0
 
-        e = pygame.event.wait()
+        if n>50:
+            skeletons=None
+
+
+        # Press Q on keyboard to  exit
+
+        key = cv2.waitKey(25)
+        if key & 0xFF == ord('q'):
+            print("Interrupt")
+            done = True
+            break
+        elif key & 0xFF == ord('+'):
+            kinect.camera.elevation_angle = kinect.camera.elevation_angle + 2
+
+        elif key & 0xFF == ord('-'):
+            kinect.camera.elevation_angle = kinect.camera.elevation_angle - 2
+
+        elif key & 0xFF == ord('0'):
+            kinect.camera.elevation_angle = 2
+
+        elif key & 0xFF == ord('r'):
+            reload_json()
+
+        elif key & 0xFF == ord('e'):
+            print('e')
+            win2_sk = True
+
+        elif key & 0xFF == ord('w'):
+            print('w')
+            win2_sk = False
+
+        elif key & 0xFF == ord('j'):
+            draw_skeleton = True
+
+        elif key & 0xFF == ord('h'):
+            draw_skeleton = False
+
+        elif key & 0xFF == ord('t'):
+            print('t')
+            todos = not todos
+
+        time.sleep(0.001)
+
+
+        if time.time()-start_time>10 and a:
+            print('todos')
+            win2_sk = True
+            a=False
+            pass
+
+        if time.time()-start_time>30 and b:
+            print('espelho')
+            draw_skeleton = True
+            b=False
+            pass
+
+
+        if time.time()-start_time>500 and c:
+            print('todos')
+            todos = True
+            c=False
+            pass
+
+
+
+
+
+        '''e = pygame.event.wait()
         dispInfo = pygame.display.Info()
         if e.type == pygame.QUIT:
             done = True
@@ -412,6 +635,8 @@ if __name__ == '__main__':
             #    pygame.display.update()
         elif e.type == KEYDOWN:
             if e.key == K_ESCAPE:
+                # Closes all the frames
+                cv2.destroyAllWindows()
                 done = True
                 break
             elif e.key == K_d:
@@ -439,5 +664,10 @@ if __name__ == '__main__':
             elif e.key == K_a:
                win2_sk= not win2_sk
             elif e.key == K_t:
-               todos= not todos
+               todos= not todos'''
 
+
+
+    print('fim')
+    # Closes all the frames
+    cv2.destroyAllWindows()

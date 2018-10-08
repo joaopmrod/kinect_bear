@@ -293,20 +293,20 @@ todos = False
 def draw_skeletons(skeletons,surface):
 
 
-    esquerda = 99
+    esquerda = -99
     esquerda_id= None
 
-    direita =-99
+    direita =99
     direita_id=None
 
     for index, data in enumerate(skeletons):
         head = data.SkeletonPositions[JointId.Head]
         if head.w !=0:
-            if head.x<esquerda:
+            if head.x>esquerda:
                 esquerda_id=index
                 esquerda=head.x
 
-            if head.x>direita:
+            if head.x<direita:
                 direita_id=index
                 direita=head.x
 
@@ -318,7 +318,7 @@ def draw_skeletons(skeletons,surface):
 
     for index, data in enumerate(sks):
 
-        if index == 0 or todos:
+        if index == 0:# or todos:
 
 
             '''line = True
@@ -416,7 +416,7 @@ def black():
 
     cv2.imshow(' ', np.zeros((800, 600)))
 
-    cv2.setWindowProperty(" ", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    #cv2.setWindowProperty(" ", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     while True:
 
@@ -431,7 +431,7 @@ def videos():
 
     os.environ["SDL_VIDEO_CENTERED"] = "1"
 
-    clip = VideoFileClip('scene 1-.mp4')
+    clip = VideoFileClip('urso_intro_best.mp4')
     cv2.namedWindow('Intro', cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("Intro", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     preview2(clip, cv=True, cv_names=['Intro'])
@@ -489,20 +489,14 @@ if __name__ == '__main__':
     kinect.depth_frame_ready += depth_frame_ready
     kinect.video_frame_ready += video_frame_ready
 
-    kinect.video_stream.open(nui.ImageStreamType.Video, 2, nui.ImageResolution.Resolution640x480, nui.ImageType.Color)
-    kinect.depth_stream.open(nui.ImageStreamType.Depth, 2, nui.ImageResolution.Resolution320x240, nui.ImageType.Depth)
-
-
-
-
 
 
     videos()
 
 
 
-
-
+    kinect.video_stream.open(nui.ImageStreamType.Video, 2, nui.ImageResolution.Resolution640x480, nui.ImageType.Color)
+    kinect.depth_stream.open(nui.ImageStreamType.Depth, 2, nui.ImageResolution.Resolution320x240, nui.ImageType.Depth)
 
 
 
@@ -600,26 +594,24 @@ if __name__ == '__main__':
         time.sleep(0.001)
 
 
-        if time.time()-start_time>10 and a:
+        if time.time()-start_time>40 and a:
             print('todos')
             win2_sk = True
             a=False
             pass
 
-        if time.time()-start_time>30 and b:
+        if time.time()-start_time>20 and b:
             print('espelho')
             draw_skeleton = True
             b=False
             pass
 
 
-        if time.time()-start_time>500 and c:
+        if time.time()-start_time>600 and c:
             print('todos')
             todos = True
             c=False
             pass
-
-
 
 
 
